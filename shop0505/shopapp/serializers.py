@@ -31,7 +31,8 @@ class CartItemSerializer(serializers.ModelSerializer):
     
     class Meta:
         model=CartItem
-        fields="__all__"
+        fields = ['cart', 'productName', 'subPrice', 'quantity', 'picId']
+       # fields="__all__"
 
 from shopapp.models import CartTotalPrice
 class CartTotalPriceSerializer(serializers.ModelSerializer):

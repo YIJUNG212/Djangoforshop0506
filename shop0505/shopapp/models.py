@@ -19,7 +19,7 @@ class ShoppingCart(models.Model):
 
 #因為一個購物車裡會有很多不同
 class CartItem(models.Model):
-    cart = models.ForeignKey(ShoppingCart, on_delete=models.CASCADE, related_name='items')
+    cart = models.ForeignKey(ShoppingCart, on_delete=models.CASCADE, related_name='caritems')
     productName=models.CharField(max_length=50,null=False)
     subPrice= models.PositiveIntegerField()
     quantity = models.PositiveIntegerField()

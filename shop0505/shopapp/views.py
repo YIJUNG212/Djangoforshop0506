@@ -15,6 +15,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth.hashers import make_password#密碼加密這個模組要調用
 
 
+
+
 class UserViewSet(viewsets.ModelViewSet):
     #下面這兩行就能調用ModelViewSet模組裡的CRUD,只是要針對客製化內容再覆寫
     queryset = User.objects.all()
@@ -103,13 +105,55 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
 #########加入購物車的 ITEM　view
 from shopapp.models import CartItem
 from shopapp.serializers import CartItemSerializer
+#status 跟response要import
+from rest_framework.response import Response
+from rest_framework import status
+#要加入QueryDict的套件,import
+from django.http import QueryDict
+
 class CartItemViewSet(viewsets.ModelViewSet):
+    ####律定格式範圍#####
+    def parse_form_data(self, data):
+        # 將非 JSON 格式的 POST 請求轉成 QueryDict 格式
+        if isinstance(data, QueryDict):
+            # 如果已經是 QueryDict 格式，就直接返回
+            return data
+
+        # 取得請求標頭中的 Content-Type 值
+        content_type = self.request.META.get('CONTENT_TYPE', '').split(';')[0].lower()
+
+        # 如果 Content-Type 為 application/x-www-form-urlencoded，則使用 QueryDict 解析
+        if content_type == 'application/x-www-form-urlencoded':
+            return QueryDict(data)
+
+        # 如果 Content-Type 為 multipart/form-data，則使用 request.POST 解析
+        elif content_type == 'multipart/form-data':
+            return self.request.POST
+
+        # 其他情況，就直接返回原始請求數據
+        else:
+            return data
+    ####律定格式範圍#####
     #下面這兩行就能調用ModelViewSet模組裡的CRUD,只是要針對客製化內容再覆寫
     queryset = CartItem.objects.all()
     serializer_class = CartItemSerializer
         #加入驗證的部份
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication] 
+
+    def create(self, request, *args, **kwargs):
+        # 取得POST資料
+        data = request.data
+        # 如果data是一個list，則迭代每一筆dict資料，分別創建CartItem物件
+        if isinstance(data, list):
+            for item_data in data:
+                serializer = self.get_serializer(data=item_data)
+                serializer.is_valid(raise_exception=False)
+                serializer.save()
+            return Response({'status': 'success'}, status=status.HTTP_201_CREATED)
+        # 如果data是一個dict，則執行原本的create方法
+        else:
+            return super().create(request, *args, **kwargs)
 
 
 #########加入購物車的 Total　view
