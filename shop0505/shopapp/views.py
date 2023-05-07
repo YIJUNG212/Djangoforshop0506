@@ -102,6 +102,9 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
     #加入驗證的部份
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication] 
+    def get_queryset(self):
+        user = self.request.user  # 获取当前请求的用户
+        return ShoppingCart.objects.filter(user=user)
 #########加入購物車的 ITEM　view
 from shopapp.models import CartItem
 from shopapp.serializers import CartItemSerializer
@@ -110,6 +113,9 @@ from rest_framework.response import Response
 from rest_framework import status
 #要加入QueryDict的套件,import
 from django.http import QueryDict
+###要回應JSON格式的話,要import這個
+from django.http import HttpResponse, JsonResponse
+
 
 class CartItemViewSet(viewsets.ModelViewSet):
     ####律定格式範圍#####
@@ -146,11 +152,17 @@ class CartItemViewSet(viewsets.ModelViewSet):
         data = request.data
         # 如果data是一個list，則迭代每一筆dict資料，分別創建CartItem物件
         if isinstance(data, list):
+            cart_items = []
             for item_data in data:
                 serializer = self.get_serializer(data=item_data)
                 serializer.is_valid(raise_exception=False)
-                serializer.save()
-            return Response({'status': 'success'}, status=status.HTTP_201_CREATED)
+                cart_item = serializer.save()
+                cart_items.append(cart_item)
+
+            # 將回應資料轉換成 JSONArray 格式
+            serializer = self.get_serializer(cart_items, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         # 如果data是一個dict，則執行原本的create方法
         else:
             return super().create(request, *args, **kwargs)
